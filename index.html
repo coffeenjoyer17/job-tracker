@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Job Tracker</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 80px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  .sub { color: var(--muted); margin-bottom: 24px; }
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+  .stat .n { font-size: 22px; font-weight: 600; }
+  .stat .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  button, .filter {
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    padding: 7px 12px; border-radius: 6px; cursor: pointer; font: inherit;
+  }
+  button:hover, .filter:hover { border-color: var(--accent); }
+  button.primary { background: #1f6feb; border-color: #1f6feb; color: white; }
+  button.primary:hover { background: #2879f7; }
+  button.danger { color: var(--red); border-color: var(--red); }
+  .filter.active { background: #1f6feb; border-color: #1f6feb; color: white; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: #0d1117; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(88, 166, 255, 0.04); }
+  .status { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+  .s-draft { background: rgba(188, 140, 255, 0.15); color: var(--purple); }
+  .s-applied { background: rgba(88, 166, 255, 0.15); color: var(--accent); }
+  .s-interview { background: rgba(210, 153, 34, 0.18); color: var(--yellow); }
+  .s-offer { background: rgba(63, 185, 80, 0.18); color: var(--green); }
+  .s-rejected { background: rgba(248, 81, 73, 0.15); color: var(--red); }
+  .s-ghosted { background: #21262d; color: var(--muted); }
+  .age { color: var(--muted); font-size: 12px; }
+  .age.warn { color: var(--yellow); }
+  .age.bad { color: var(--red); }
+  .actions { display: flex; gap: 6px; }
+  .actions button { padding: 4px 8px; font-size: 12px; }
+  a { color: var(--accent); }
+  .empty { padding: 40px; text-align: center; color: var(--muted); }
+
+  dialog {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); padding: 20px; min-width: 380px; max-width: 500px;
+  }
+  dialog::backdrop { background: rgba(0,0,0,0.6); }
+  dialog h3 { margin: 0 0 16px; }
+  .form-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+  .form-row label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  input, select, textarea {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: 7px 10px; border-radius: 6px; font: inherit;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  textarea { min-height: 60px; resize: vertical; }
+  .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+
+  footer { margin-top: 32px; color: var(--muted); font-size: 12px; text-align: center; }
+  footer a { color: var(--muted); }
+  @media (max-width: 700px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    th.col-link, td.col-link, th.col-notes, td.col-notes { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Job Tracker</h1>
+  <div class="sub">Personal application tracker. Data lives in your browser localStorage. Export to JSON whenever.</div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar">
+    <button class="primary" onclick="openAdd()">+ New application</button>
+    <button onclick="exportJson()">Export</button>
+    <button onclick="importJson()">Import</button>
+    <span style="flex:1"></span>
+    <button class="filter" data-f="all">All</button>
+    <button class="filter" data-f="draft">Draft</button>
+    <button class="filter" data-f="applied">Applied</button>
+    <button class="filter" data-f="interview">Interview</button>
+    <button class="filter" data-f="offer">Offer</button>
+    <button class="filter" data-f="rejected">Rejected</button>
+    <button class="filter" data-f="ghosted">Ghosted</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Company</th>
+        <th>Role</th>
+        <th>Status</th>
+        <th>Applied</th>
+        <th>Age</th>
+        <th class="col-link">Link</th>
+        <th class="col-notes">Notes</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <footer>
+    Built solo. Source: <a href="https://github.com/coffeenjoyer17/job-tracker" target="_blank">github.com/coffeenjoyer17/job-tracker</a>
+  </footer>
+</div>
+
+<dialog id="dlg">
+  <h3 id="dlg-title">New application</h3>
+  <form id="form">
+    <input type="hidden" id="f-id" />
+    <div class="form-row"><label>Company</label><input id="f-company" required /></div>
+    <div class="form-row"><label>Role</label><input id="f-role" required /></div>
+    <div class="form-row"><label>Status</label>
+      <select id="f-status">
+        <option value="draft">Draft</option>
+        <option value="applied">Applied</option>
+        <option value="interview">Interview</option>
+        <option value="offer">Offer</option>
+        <option value="rejected">Rejected</option>
+        <option value="ghosted">Ghosted</option>
+      </select>
+    </div>
+    <div class="form-row"><label>Applied date</label><input id="f-date" type="date" /></div>
+    <div class="form-row"><label>Link (job posting / application)</label><input id="f-link" type="url" placeholder="https://..." /></div>
+    <div class="form-row"><label>Notes</label><textarea id="f-notes" placeholder="Recruiter name, interview prep, anything"></textarea></div>
+    <div class="form-actions">
+      <button type="button" onclick="closeDlg()">Cancel</button>
+      <button type="submit" class="primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const STORAGE_KEY = 'job-tracker-v1';
+const SEED = [
+  { id: 1, company: 'SuperPlane', role: 'Product Engineer', status: 'applied', date: '2026-04-29', link: '', notes: 'Submitted with 3 PRs as proof-of-work. Reviewers: shiroyasha, lucaspin, forestileao.' },
+  { id: 2, company: 'Better Stack', role: 'Engineer', status: 'applied', date: '2026-05-01', link: '', notes: '' },
+  { id: 3, company: 'Sticker Mule', role: 'Engineer', status: 'applied', date: '2026-05-03', link: '', notes: '' },
+  { id: 4, company: 'PostHog', role: 'Engineer', status: 'applied', date: '2026-05-07', link: '', notes: '' },
+  { id: 5, company: 'Tinybird', role: 'Engineer', status: 'draft', date: '', link: '', notes: 'Drafting application — fintech analytics angle.' },
+];
+
+let state = load();
+let filter = 'all';
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [...SEED];
+    return JSON.parse(raw);
+  } catch (e) {
+    return [...SEED];
+  }
+}
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function nextId() { return state.length ? Math.max(...state.map(x => x.id)) + 1 : 1; }
+function daysSince(d) {
+  if (!d) return null;
+  const ms = Date.now() - new Date(d).getTime();
+  return Math.floor(ms / 86400000);
+}
+function ageClass(d, status) {
+  if (!d || status === 'rejected' || status === 'offer' || status === 'ghosted') return '';
+  const days = daysSince(d);
+  if (days >= 28) return 'bad';
+  if (days >= 14) return 'warn';
+  return '';
+}
+function fmtDate(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function render() {
+  // Stats
+  const counts = { draft: 0, applied: 0, interview: 0, offer: 0, rejected: 0, ghosted: 0 };
+  for (const a of state) counts[a.status] = (counts[a.status] || 0) + 1;
+  const open = counts.applied + counts.interview;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="n">${state.length}</div><div class="l">Total</div></div>
+    <div class="stat"><div class="n" style="color:var(--accent)">${open}</div><div class="l">In flight</div></div>
+    <div class="stat"><div class="n" style="color:var(--yellow)">${counts.interview}</div><div class="l">Interview</div></div>
+    <div class="stat"><div class="n" style="color:var(--green)">${counts.offer}</div><div class="l">Offer</div></div>
+    <div class="stat"><div class="n" style="color:var(--red)">${counts.rejected + counts.ghosted}</div><div class="l">Closed lost</div></div>
+  `;
+
+  // Filter buttons
+  for (const btn of document.querySelectorAll('.filter')) {
+    btn.classList.toggle('active', btn.dataset.f === filter);
+    btn.onclick = () => { filter = btn.dataset.f; render(); };
+  }
+
+  // Rows
+  const rows = state
+    .filter(a => filter === 'all' || a.status === filter)
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const tbody = document.getElementById('rows');
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">No applications match this filter.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(a => `
+    <tr>
+      <td><strong>${escape(a.company)}</strong></td>
+      <td>${escape(a.role)}</td>
+      <td><span class="status s-${a.status}">${a.status}</span></td>
+      <td>${fmtDate(a.date)}</td>
+      <td class="age ${ageClass(a.date, a.status)}">${a.date ? daysSince(a.date) + 'd' : ''}</td>
+      <td class="col-link">${a.link ? `<a href="${escape(a.link)}" target="_blank" rel="noopener">link</a>` : ''}</td>
+      <td class="col-notes" style="max-width:240px;color:var(--muted);font-size:13px">${escape(a.notes || '')}</td>
+      <td>
+        <div class="actions">
+          <button onclick="openEdit(${a.id})">Edit</button>
+          <button class="danger" onclick="del(${a.id})">Del</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+function escape(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function openAdd() {
+  document.getElementById('dlg-title').textContent = 'New application';
+  document.getElementById('f-id').value = '';
+  document.getElementById('f-company').value = '';
+  document.getElementById('f-role').value = '';
+  document.getElementById('f-status').value = 'draft';
+  document.getElementById('f-date').value = '';
+  document.getElementById('f-link').value = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('dlg').showModal();
+}
+function openEdit(id) {
+  const a = state.find(x => x.id === id);
+  if (!a) return;
+  document.getElementById('dlg-title').textContent = 'Edit application';
+  document.getElementById('f-id').value = a.id;
+  document.getElementById('f-company').value = a.company;
+  document.getElementById('f-role').value = a.role;
+  document.getElementById('f-status').value = a.status;
+  document.getElementById('f-date').value = a.date || '';
+  document.getElementById('f-link').value = a.link || '';
+  document.getElementById('f-notes').value = a.notes || '';
+  document.getElementById('dlg').showModal();
+}
+function closeDlg() { document.getElementById('dlg').close(); }
+function del(id) {
+  if (!confirm('Delete this application?')) return;
+  state = state.filter(x => x.id !== id);
+  save(); render();
+}
+document.getElementById('form').addEventListener('submit', e => {
+  e.preventDefault();
+  const id = document.getElementById('f-id').value;
+  const data = {
+    company: document.getElementById('f-company').value.trim(),
+    role: document.getElementById('f-role').value.trim(),
+    status: document.getElementById('f-status').value,
+    date: document.getElementById('f-date').value,
+    link: document.getElementById('f-link').value.trim(),
+    notes: document.getElementById('f-notes').value.trim(),
+  };
+  if (id) {
+    const a = state.find(x => x.id === Number(id));
+    if (a) Object.assign(a, data);
+  } else {
+    state.push({ id: nextId(), ...data });
+  }
+  save(); render(); closeDlg();
+});
+
+function exportJson() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `job-tracker-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importJson() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!Array.isArray(data)) throw new Error('not an array');
+        state = data;
+        save(); render();
+      } catch (err) {
+        alert('Invalid JSON: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+render();
+</script>
+</body>
+</html>
