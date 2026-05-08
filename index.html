@@ -149,13 +149,17 @@
 </dialog>
 
 <script>
-const STORAGE_KEY = 'job-tracker-v1';
+const STORAGE_KEY = 'job-tracker-v2';
 const SEED = [
   { id: 1, company: 'SuperPlane', role: 'Product Engineer', status: 'applied', date: '2026-04-29', link: '', notes: 'Submitted with 3 PRs as proof-of-work. Reviewers: shiroyasha, lucaspin, forestileao.' },
   { id: 2, company: 'Better Stack', role: 'Engineer', status: 'applied', date: '2026-05-01', link: '', notes: '' },
   { id: 3, company: 'Sticker Mule', role: 'Engineer', status: 'applied', date: '2026-05-03', link: '', notes: '' },
   { id: 4, company: 'PostHog', role: 'Engineer', status: 'applied', date: '2026-05-07', link: '', notes: '' },
-  { id: 5, company: 'Tinybird', role: 'Engineer', status: 'draft', date: '', link: '', notes: 'Drafting application — fintech analytics angle.' },
+  { id: 5, company: 'Tinybird', role: 'Backend Engineer - Platform', status: 'rejected', date: '2026-05-07', link: '', notes: 'Rejected 2026-05-08. Senior role, structural seniority mismatch.' },
+  { id: 6, company: 'Photoroom', role: 'Senior Software Engineer (Engine/Rust)', status: 'applied', date: '2026-05-07', link: '', notes: 'Senior role. Long shot.' },
+  { id: 7, company: 'Equilibrium', role: 'Senior Rust Engineer', status: 'applied', date: '2026-05-07', link: '', notes: 'Senior role. Long shot.' },
+  { id: 8, company: 'Asymmetric Research', role: 'Security Engineer', status: 'applied', date: '2026-05-07', link: '', notes: '' },
+  { id: 9, company: 'Kalepa', role: 'Engineer', status: 'interview', date: '2026-05-07', link: '', notes: 'Security code submitted 2026-05-08 — progressing in pipeline.' },
 ];
 
 let state = load();
